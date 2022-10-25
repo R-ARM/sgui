@@ -1,0 +1,15 @@
+[package]
+name = "sgui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.66"
+crossterm = "0.25.0"
+ron = "0.8.0"
+serde = { version = "1.0.147", features = ["serde_derive"] }
+
+[dev-dependencies]
+easy-repl = "0.2.1"
