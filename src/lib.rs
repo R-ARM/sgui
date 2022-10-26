@@ -61,6 +61,7 @@ pub enum HidEvent {
     NextTab,
     PreviousTab,
     ButtonPress,
+    Redraw,
 }
 
 pub trait Renderer {
@@ -101,6 +102,10 @@ impl Gui {
                         HidEvent::Left => item_column_chg = -1,
                         HidEvent::Right => item_column_chg = 1,
                         HidEvent::ButtonPress => activate_selection = true,
+                        HidEvent::Redraw => {
+                            redraw_items = true;
+                            redraw_tabs = true;
+                        }
                     }
                 }
             }

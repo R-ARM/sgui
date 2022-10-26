@@ -47,12 +47,12 @@ fn handle_events(tx: mpsc::Sender<HidEvent>) {
     loop {
         match event::read() {
             Ok(ev) => {
-                match ev {
+                if match ev {
                     Event::Key(key) => {
                         if key.kind != KeyEventKind::Press {
                             continue;
                         }
-                        if match key.code {
+                        match key.code {
                             KeyCode::Up => tx.send(HidEvent::Up),
                             KeyCode::Down => tx.send(HidEvent::Down),
                             KeyCode::Left => tx.send(HidEvent::Left),
@@ -61,11 +61,12 @@ fn handle_events(tx: mpsc::Sender<HidEvent>) {
                             KeyCode::Tab => tx.send(HidEvent::NextTab),
                             KeyCode::BackTab => tx.send(HidEvent::PreviousTab),
                             _ => continue,
-                        }.is_err() {
-                            break;
                         }
                     },
+                    Event::Resize(_, _) => tx.send(HidEvent::Redraw),
                     _ => continue,
+                }.is_err() {
+                    break;
                 }
             },
             Err(_) => break,
