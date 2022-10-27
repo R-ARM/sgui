@@ -1,5 +1,6 @@
 use sgui::layout::Layout;
 use sgui::Gui;
+use sgui::GuiEvent;
 
 fn main() {
     let layout = Layout::builder()
@@ -15,8 +16,12 @@ fn main() {
                 .button_stateful("baton", false)
                 .button_stateless("i don't have a state lol")
         .build();
+
     let mut gui = Gui::new(layout);
     loop {
-        gui.get_ev();
+        let ev = gui.get_ev();
+        if ev == GuiEvent::Quit {
+            break;
+        }
     }
 }

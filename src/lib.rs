@@ -46,7 +46,7 @@ impl ColorPalette {
     }
 }
 
-
+#[derive(Eq, PartialEq)]
 pub enum GuiEvent {
     ItemSelected(String),
     StatefulButtonChange(String, bool),
@@ -55,6 +55,7 @@ pub enum GuiEvent {
     Quit,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum HidEvent {
     Up,
     Down,
@@ -63,8 +64,10 @@ pub enum HidEvent {
     NextTab,
     PreviousTab,
     ButtonPress,
+    Quit,
 }
 
+#[derive(Eq, PartialEq)]
 pub enum RendererEvent {
     Refresh,
     WindowClosed,
@@ -133,6 +136,7 @@ impl Gui {
                     HidEvent::Left => item_column_chg = -1,
                     HidEvent::Right => item_column_chg = 1,
                     HidEvent::ButtonPress => activate_selection = true,
+                    HidEvent::Quit => ret = Some(GuiEvent::Quit),
                 }
             }
 

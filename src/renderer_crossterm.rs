@@ -60,6 +60,7 @@ fn handle_events(tx: mpsc::Sender<RendererEvent>) {
                             KeyCode::Enter => HidEvent::ButtonPress,
                             KeyCode::Tab => HidEvent::NextTab,
                             KeyCode::BackTab => HidEvent::PreviousTab,
+                            KeyCode::Esc => HidEvent::Quit,
                             _ => continue,
                         };
                         tx.send(RendererEvent::Hid(ev))
