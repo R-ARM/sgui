@@ -51,8 +51,10 @@ pub enum GuiEvent {
     ItemSelected(String),
     StatefulButtonChange(String, bool),
     StatelessButtonPress(String),
-    TabChanged(String)
+    TabChanged(String),
+    Quit,
 }
+
 pub enum HidEvent {
     Up,
     Down,
@@ -61,13 +63,18 @@ pub enum HidEvent {
     NextTab,
     PreviousTab,
     ButtonPress,
-    Redraw,
+}
+
+pub enum RendererEvent {
+    Refresh,
+    WindowClosed,
+    Hid(HidEvent),
 }
 
 pub trait Renderer {
     fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette, selected_tab_idx: u64) -> Result<()>;
     fn draw_items(&mut self, items: &Vec<Vec<layout::Item>>, colors: &ColorPalette, selected_item_idx: (usize, usize)) -> Result<()>;
-    fn get_input(&self) -> Option<mpsc::Receiver<HidEvent>>;
+    fn get_event(&self) -> Option<mpsc::Receiver<RendererEvent>>;
 }
 
 pub struct Gui {
@@ -75,6 +82,7 @@ pub struct Gui {
     layout: layout::Layout,
     colors: ColorPalette,
     hid_rx: Option<mpsc::Receiver<HidEvent>>,
+    renderer_rx: Option<mpsc::Receiver<RendererEvent>>,
     tab_pos: i32,
     item_pos: (usize, usize),
 }
@@ -91,22 +99,40 @@ impl Gui {
             let mut item_column_chg: i32 = 0;
             let mut item_row_chg: i32 = 0;
             let mut activate_selection = false;
+            let mut hid_ev = None;
 
             if let Some(rx) = &self.hid_rx {
-                if let Ok(ev) = rx.recv_timeout(Duration::from_millis(50)) {
-                    match ev {
-                        HidEvent::NextTab => tab_chg = 1,
-                        HidEvent::PreviousTab => tab_chg = -1,
-                        HidEvent::Up => item_row_chg = -1,
-                        HidEvent::Down => item_row_chg = 1,
-                        HidEvent::Left => item_column_chg = -1,
-                        HidEvent::Right => item_column_chg = 1,
-                        HidEvent::ButtonPress => activate_selection = true,
-                        HidEvent::Redraw => {
-                            redraw_items = true;
-                            redraw_tabs = true;
+                hid_ev = rx.recv_timeout(Duration::from_millis(50)).ok();
+            }
+
+            if hid_ev.is_none() {
+                if let Some(rx) = &self.renderer_rx {
+                    if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(50)) {
+                        match r_ev {
+                            RendererEvent::Refresh => {
+                                redraw_items = true;
+                                redraw_tabs = true;
+                            },
+                            RendererEvent::WindowClosed => {
+                                ret = Some(GuiEvent::Quit);
+                            },
+                            RendererEvent::Hid(ev) => {
+                                hid_ev = Some(ev);
+                            }
                         }
                     }
+                }
+            }
+
+            if let Some(hid_ev) = hid_ev {
+                match hid_ev {
+                    HidEvent::NextTab => tab_chg = 1,
+                    HidEvent::PreviousTab => tab_chg = -1,
+                    HidEvent::Up => item_row_chg = -1,
+                    HidEvent::Down => item_row_chg = 1,
+                    HidEvent::Left => item_column_chg = -1,
+                    HidEvent::Right => item_column_chg = 1,
+                    HidEvent::ButtonPress => activate_selection = true,
                 }
             }
 
@@ -205,13 +231,18 @@ impl Gui {
         let mut renderer = autopick_renderer();
         renderer.draw_tab_header(&layout.tab_names(), &colors, 0).unwrap();
         renderer.draw_items(&layout.tab(0).unwrap().items(), &colors, (0, 0)).unwrap();
-        let hid_rx = renderer.get_input();
+        let renderer_rx = renderer.get_event();
+
+        //let mut inputer = autopick_input();
+        //let hid_rx = inputer.get_input();
+
 
         Gui {
             layout,
             renderer,
             colors,
-            hid_rx,
+            hid_rx: None,
+            renderer_rx,
             tab_pos: 0,
             item_pos: (0, 0),
         }

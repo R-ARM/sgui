@@ -1,4 +1,4 @@
-use crate::{Renderer, ColorPalette, HidEvent, layout::Item};
+use crate::{Renderer, ColorPalette, HidEvent, RendererEvent, layout::Item};
 use anyhow::Result;
 use std::{
     io::{self, Write},
@@ -43,7 +43,7 @@ pub struct CrosstermRenderer {
     out: io::Stdout,
 }
 
-fn handle_events(tx: mpsc::Sender<HidEvent>) {
+fn handle_events(tx: mpsc::Sender<RendererEvent>) {
     loop {
         match event::read() {
             Ok(ev) => {
@@ -52,18 +52,19 @@ fn handle_events(tx: mpsc::Sender<HidEvent>) {
                         if key.kind != KeyEventKind::Press {
                             continue;
                         }
-                        match key.code {
-                            KeyCode::Up => tx.send(HidEvent::Up),
-                            KeyCode::Down => tx.send(HidEvent::Down),
-                            KeyCode::Left => tx.send(HidEvent::Left),
-                            KeyCode::Right => tx.send(HidEvent::Right),
-                            KeyCode::Enter => tx.send(HidEvent::ButtonPress),
-                            KeyCode::Tab => tx.send(HidEvent::NextTab),
-                            KeyCode::BackTab => tx.send(HidEvent::PreviousTab),
+                        let ev = match key.code {
+                            KeyCode::Up => HidEvent::Up,
+                            KeyCode::Down => HidEvent::Down,
+                            KeyCode::Left => HidEvent::Left,
+                            KeyCode::Right => HidEvent::Right,
+                            KeyCode::Enter => HidEvent::ButtonPress,
+                            KeyCode::Tab => HidEvent::NextTab,
+                            KeyCode::BackTab => HidEvent::PreviousTab,
                             _ => continue,
-                        }
+                        };
+                        tx.send(RendererEvent::Hid(ev))
                     },
-                    Event::Resize(_, _) => tx.send(HidEvent::Redraw),
+                    Event::Resize(_, _) => tx.send(RendererEvent::Refresh),
                     _ => continue,
                 }.is_err() {
                     break;
@@ -75,7 +76,7 @@ fn handle_events(tx: mpsc::Sender<HidEvent>) {
 }
 
 impl Renderer for CrosstermRenderer {
-    fn get_input(&self) -> Option<mpsc::Receiver<HidEvent>> {
+    fn get_event(&self) -> Option<mpsc::Receiver<RendererEvent>> {
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || handle_events(tx));
         Some(rx)
