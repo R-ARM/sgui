@@ -10,7 +10,9 @@ use std::{
     time::Duration,
 };
 
+#[derive(Debug)]
 pub struct Color{r: u8, g: u8, b: u8}
+#[derive(Debug)]
 #[allow(dead_code)]
 pub struct ColorPalette {
     tab_outline: Color,
@@ -46,7 +48,7 @@ impl ColorPalette {
     }
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum GuiEvent {
     ItemSelected(String),
     StatefulButtonChange(String, bool),
@@ -55,7 +57,7 @@ pub enum GuiEvent {
     Quit,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum HidEvent {
     Up,
     Down,
@@ -67,7 +69,7 @@ pub enum HidEvent {
     Quit,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum RendererEvent {
     Refresh,
     WindowClosed,
@@ -90,7 +92,22 @@ pub struct Gui {
     item_pos: (usize, usize),
 }
 
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct GuiState {
+    layout: layout::Layout,
+    tab_pos: i32,
+    item_pos: (usize, usize),
+}
+
 impl Gui {
+    pub fn exit_dumping_state(self) -> GuiState {
+        GuiState {
+            layout: self.layout,
+            tab_pos: self.tab_pos,
+            item_pos: self.item_pos,
+        }
+    }
     pub fn get_ev(&mut self) -> GuiEvent {
         loop {
             let mut ret = None;
