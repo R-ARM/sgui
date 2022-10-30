@@ -18,10 +18,13 @@ fn main() {
         .build();
 
     let mut gui = Gui::new(layout);
-    loop {
+    let state = loop {
         let ev = gui.get_ev();
         if ev == GuiEvent::Quit {
-            break;
+            let state = gui.exit_dumping_state();
+            break state;
         }
-    }
+    };
+
+    println!("{:#?}", state);
 }
