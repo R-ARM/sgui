@@ -82,7 +82,7 @@ impl Renderer for CrosstermRenderer {
         thread::spawn(move || handle_events(tx));
         Some(rx)
     }
-    fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette, selected_tab_idx: u64) -> Result<()> {
+    fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette) -> Result<()> {
         let (columns, _) = terminal::size()?;
 
         // set up places where to put | characters
@@ -123,7 +123,7 @@ impl Renderer for CrosstermRenderer {
         self.out.queue(cursor::MoveTo(0, 1))?;
         self.out.queue(style::SetForegroundColor(colors.tab_text.as_crossterm_color()))?;
         for (i, name) in names.iter().map(|v| format!(" {}", v)).enumerate() {
-            if selected_tab_idx as usize == i {
+            if i == 0 {
                 self.out.queue(style::SetForegroundColor(colors.tab_accent.as_crossterm_color()))?;
                 self.out.queue(style::Print(&name))?;
                 self.out.queue(style::SetForegroundColor(colors.tab_text.as_crossterm_color()))?;

@@ -77,7 +77,7 @@ pub enum RendererEvent {
 }
 
 pub trait Renderer {
-    fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette, selected_tab_idx: u64) -> Result<()>;
+    fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette) -> Result<()>;
     fn draw_items(&mut self, items: &Vec<Vec<layout::Item>>, colors: &ColorPalette, selected_item_idx: (usize, usize)) -> Result<()>;
     fn get_event(&self) -> Option<mpsc::Receiver<RendererEvent>>;
 }
@@ -229,7 +229,7 @@ impl Gui {
             }
 
             if redraw_tabs {
-                self.renderer.draw_tab_header(&self.layout.tab_names(), &self.colors, self.tab_pos as u64)
+                self.renderer.draw_tab_header(&self.layout.tab_names().into_iter().skip(self.tab_pos as usize).collect::<Vec<&str>>(), &self.colors)
                     .expect("Failed to draw tab header");
             }
 
@@ -250,7 +250,7 @@ impl Gui {
     pub fn new(layout: layout::Layout) -> Gui {
         let colors = ColorPalette::default();
         let mut renderer = autopick_renderer();
-        renderer.draw_tab_header(&layout.tab_names(), &colors, 0).unwrap();
+        renderer.draw_tab_header(&layout.tab_names(), &colors).unwrap();
         renderer.draw_items(&layout.tab(0).unwrap().items(), &colors, (0, 0)).unwrap();
         let renderer_rx = renderer.get_event();
 
