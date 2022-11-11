@@ -178,4 +178,5 @@ impl Renderer for CrosstermRenderer {
         self.out.flush()?;
         Ok(())
     }
+    fn tick(&mut self) {}
 }

@@ -1,5 +1,5 @@
 pub mod layout;
-//pub mod renderer_sdl2;
+pub mod renderer_sdl2;
 pub mod renderer_crossterm;
 
 use layout::Item;
@@ -29,6 +29,9 @@ pub struct ColorPalette {
 impl Color {
     fn as_crossterm_color(&self) -> crossterm::style::Color {
         (self.r, self.g, self.b).into()
+    }
+    fn as_tuple(&self) -> (u8, u8, u8) {
+        (self.r, self.g, self.b)
     }
 }
 
@@ -80,6 +83,7 @@ pub trait Renderer {
     fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette) -> Result<()>;
     fn draw_items(&mut self, items: &Vec<Vec<layout::Item>>, colors: &ColorPalette, selected_item_idx: (usize, usize)) -> Result<()>;
     fn get_event(&self) -> Option<mpsc::Receiver<RendererEvent>>;
+    fn tick(&mut self);
 }
 
 pub struct Gui {
@@ -244,7 +248,8 @@ impl Gui {
                 return return_this;
             }
 
-            thread::sleep(Duration::from_millis(50));
+            self.renderer.tick();
+            thread::sleep(Duration::from_millis(5));
         }
     }
     pub fn new(layout: layout::Layout) -> Gui {
@@ -271,6 +276,9 @@ impl Gui {
 }
 
 fn autopick_renderer() -> Box<dyn Renderer> {
-    Box::new(renderer_crossterm::new().unwrap())
-    //Box::new(renderer_sdl2::new())
+    if let Ok(sdl) = renderer_sdl2::new() {
+        return Box::new(sdl);
+    }
+
+    Box::new(renderer_sdl2::new().unwrap())
 }
