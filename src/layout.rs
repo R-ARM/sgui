@@ -1,6 +1,4 @@
-use serde::{Serialize, Deserialize};
-
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug)]
 pub struct Layout {
     tabs: Vec<Tab>,
 }
@@ -24,8 +22,7 @@ impl Layout {
         LayoutBuilder::new()
     }
 }
-
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug)]
 pub struct Tab {
     name: String,
     item_grid: Vec<Vec<Item>>,
@@ -43,7 +40,7 @@ impl Tab {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug)]
 pub enum Item {
     Text(String),
     StatefulButton(String, bool),
