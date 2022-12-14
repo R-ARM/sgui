@@ -1,4 +1,5 @@
 pub mod layout;
+#[cfg(feature = "sdl2")]
 pub mod renderer_sdl2;
 pub mod renderer_crossterm;
 
@@ -126,12 +127,12 @@ impl Gui {
             let mut hid_ev = None;
 
             if let Some(rx) = &self.hid_rx {
-                hid_ev = rx.recv_timeout(Duration::from_millis(50)).ok();
+                hid_ev = rx.recv_timeout(Duration::from_millis(10)).ok();
             }
 
             if hid_ev.is_none() {
                 if let Some(rx) = &self.renderer_rx {
-                    if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(50)) {
+                    if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(10)) {
                         match r_ev {
                             RendererEvent::Refresh => {
                                 redraw_items = true;
@@ -249,7 +250,6 @@ impl Gui {
             }
 
             self.renderer.tick();
-            thread::sleep(Duration::from_millis(5));
         }
     }
     pub fn new(layout: layout::Layout) -> Gui {
@@ -276,9 +276,10 @@ impl Gui {
 }
 
 fn autopick_renderer() -> Box<dyn Renderer> {
+    #[cfg(feature = "sdl2")]
     if let Ok(sdl) = renderer_sdl2::new() {
         return Box::new(sdl);
     }
 
-    Box::new(renderer_sdl2::new().unwrap())
+    Box::new(renderer_crossterm::new().unwrap())
 }

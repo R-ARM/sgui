@@ -41,10 +41,14 @@ struct RendererEventWatch {
 
 impl sdl2::event::EventWatchCallback for RendererEventWatch {
     fn callback(&mut self, ev: sdl2::event::Event) {
-        use sdl2::event::{
-            Event,
-            WindowEvent,
+        use sdl2::{
+            event::{
+                Event,
+                WindowEvent,
+            },
+            keyboard::Keycode,
         };
+        use crate::HidEvent;
 
         let new_ev = match ev {
             Event::Quit{..} => RendererEvent::WindowClosed,
@@ -53,6 +57,16 @@ impl sdl2::event::EventWatchCallback for RendererEventWatch {
                 WindowEvent::Close => RendererEvent::WindowClosed,
                 _ => return,
             },
+            Event::KeyDown{keycode: Some(key), ..} => match key {
+                Keycode::X      => RendererEvent::Hid(HidEvent::NextTab),
+                Keycode::Z      => RendererEvent::Hid(HidEvent::PreviousTab),
+                Keycode::Left   => RendererEvent::Hid(HidEvent::Left),
+                Keycode::Right  => RendererEvent::Hid(HidEvent::Right),
+                Keycode::Up     => RendererEvent::Hid(HidEvent::Up),
+                Keycode::Down   => RendererEvent::Hid(HidEvent::Down),
+                Keycode::Return => RendererEvent::Hid(HidEvent::ButtonPress),
+                _ => return,
+            }
             _ => return,
         };
 
