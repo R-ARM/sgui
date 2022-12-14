@@ -161,10 +161,10 @@ impl Renderer for CrosstermRenderer {
                     self.out.queue(style::SetForegroundColor(colors.item_text.as_crossterm_color()))?;
                 }
                 match item {
-                    Item::Text(text) | Item::StatelessButton(text) => {
+                    Item::Text(text) | Item::StatelessButton(text, _) => {
                         self.out.queue(style::Print(&text))?;
                     },
-                    Item::StatefulButton(text, state) => {
+                    Item::StatefulButton(text, state, _) => {
                         if *state {
                             self.out.queue(style::Print("[ ] "))?;
                         } else {

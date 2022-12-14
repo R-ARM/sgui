@@ -55,8 +55,8 @@ impl ColorPalette {
 #[derive(Eq, PartialEq, Debug)]
 pub enum GuiEvent {
     ItemSelected(String),
-    StatefulButtonChange(String, bool),
-    StatelessButtonPress(String),
+    StatefulButtonChange(String, bool, u128),
+    StatelessButtonPress(String, u128),
     TabChanged(String),
     Quit,
 }
@@ -168,13 +168,13 @@ impl Gui {
                     if let Some(row) = tab.items_mut().get_mut(row) {
                         if let Some(item) = row.get_mut(col) {
                             match item {
-                                &mut Item::StatefulButton(ref text, ref mut state) => {
+                                &mut Item::StatefulButton(ref text, ref mut state, ref id) => {
                                     *state = !*state;
                                     redraw_items = true;
-                                    ret = Some(GuiEvent::StatefulButtonChange(text.to_string(), *state));
+                                    ret = Some(GuiEvent::StatefulButtonChange(text.to_string(), *state, *id));
                                 },
-                                Item::StatelessButton(text) => {
-                                    ret = Some(GuiEvent::StatelessButtonPress(text.to_string()));
+                                Item::StatelessButton(text, id) => {
+                                    ret = Some(GuiEvent::StatelessButtonPress(text.to_string(), *id));
                                 },
                                 _ => (),
                             }

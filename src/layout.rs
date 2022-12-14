@@ -43,8 +43,8 @@ impl Tab {
 #[derive(Debug)]
 pub enum Item {
     Text(String),
-    StatefulButton(String, bool),
-    StatelessButton(String),
+    StatefulButton(String, bool, u128),
+    StatelessButton(String, u128),
 }
 
 pub struct LayoutBuilder {
@@ -105,12 +105,12 @@ impl LineBuilder {
         self.items.push(Item::Text(text.to_string()));
         self
     }
-    pub fn button_stateful(mut self, text: &str, init_state: bool) -> LineBuilder {
-        self.items.push(Item::StatefulButton(text.to_string(), init_state));
+    pub fn button_stateful(mut self, text: &str, init_state: bool, id: u128) -> LineBuilder {
+        self.items.push(Item::StatefulButton(text.to_string(), init_state, id));
         self
     }
-    pub fn button_stateless(mut self, text: &str) -> LineBuilder {
-        self.items.push(Item::StatelessButton(text.to_string()));
+    pub fn button_stateless(mut self, text: &str, id: u128) -> LineBuilder {
+        self.items.push(Item::StatelessButton(text.to_string(), id));
         self
     }
     pub fn line(mut self) -> LineBuilder {
