@@ -128,6 +128,9 @@ impl LineBuilder {
 
         tab_builder.tab(name)
     }
+    pub fn endl(mut self) -> TabBuilder {
+        self.tab_builder.take().unwrap()
+    }
 
     pub fn build(mut self) -> Layout {
         let mut tab_builder = self.tab_builder.take().unwrap();
