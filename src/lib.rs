@@ -96,6 +96,7 @@ pub struct Gui {
     renderer_rx: Option<mpsc::Receiver<RendererEvent>>,
     tab_pos: i32,
     item_pos: (usize, usize),
+    ignore_hid: bool,
 }
 
 #[derive(Debug)]
@@ -113,6 +114,9 @@ impl Gui {
             tab_pos: self.tab_pos,
             item_pos: self.item_pos,
         }
+    }
+    pub fn set_ignore_hid(&mut self, val: bool) {
+        self.ignore_hid = val;
     }
     pub fn get_ev(&mut self) -> GuiEvent {
         loop {
@@ -133,17 +137,19 @@ impl Gui {
 
             if hid_ev.is_none() {
                 if let Some(rx) = &self.renderer_rx {
-                    if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(10)) {
-                        match r_ev {
-                            RendererEvent::Refresh => {
-                                redraw_items = true;
-                                redraw_tabs = true;
-                            },
-                            RendererEvent::WindowClosed => {
-                                ret = Some(GuiEvent::Quit);
-                            },
-                            RendererEvent::Hid(ev) => {
-                                hid_ev = Some(ev);
+                    if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(10)){
+                        if !self.ignore_hid {
+                            match r_ev {
+                                RendererEvent::Refresh => {
+                                    redraw_items = true;
+                                    redraw_tabs = true;
+                                },
+                                RendererEvent::WindowClosed => {
+                                    ret = Some(GuiEvent::Quit);
+                                },
+                                RendererEvent::Hid(ev) => {
+                                    hid_ev = Some(ev);
+                                }
                             }
                         }
                     }
@@ -151,15 +157,17 @@ impl Gui {
             }
 
             if let Some(hid_ev) = hid_ev {
-                match hid_ev {
-                    HidEvent::NextTab => tab_chg = 1,
-                    HidEvent::PreviousTab => tab_chg = -1,
-                    HidEvent::Up => item_row_chg = -1,
-                    HidEvent::Down => item_row_chg = 1,
-                    HidEvent::Left => item_column_chg = -1,
-                    HidEvent::Right => item_column_chg = 1,
-                    HidEvent::ButtonPress => activate_selection = true,
-                    HidEvent::Quit => ret = Some(GuiEvent::Quit),
+                if !self.ignore_hid {
+                    match hid_ev {
+                        HidEvent::NextTab => tab_chg = 1,
+                        HidEvent::PreviousTab => tab_chg = -1,
+                        HidEvent::Up => item_row_chg = -1,
+                        HidEvent::Down => item_row_chg = 1,
+                        HidEvent::Left => item_column_chg = -1,
+                        HidEvent::Right => item_column_chg = 1,
+                        HidEvent::ButtonPress => activate_selection = true,
+                        HidEvent::Quit => ret = Some(GuiEvent::Quit),
+                    }
                 }
             }
 
@@ -270,6 +278,7 @@ impl Gui {
             renderer_rx,
             tab_pos: 0,
             item_pos: (0, 0),
+            ignore_hid: false,
         }
     }
 }
