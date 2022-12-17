@@ -5,6 +5,7 @@ pub mod renderer_crossterm;
 
 use layout::Item;
 use anyhow::Result;
+use ez_input::RinputerHandle;
 use std::{
     sync::mpsc,
     thread,
@@ -259,20 +260,44 @@ impl Gui {
         renderer.draw_items(&layout.tab(0).unwrap().items(), &colors, (0, 0)).unwrap();
         let renderer_rx = renderer.get_event();
 
-        //let mut inputer = autopick_input();
-        //let hid_rx = inputer.get_input();
-
+        let hid_rx = autopick_input();
 
         Gui {
             layout,
             renderer,
             colors,
-            hid_rx: None,
+            hid_rx,
             renderer_rx,
             tab_pos: 0,
             item_pos: (0, 0),
         }
     }
+}
+
+fn autopick_input() -> Option<mpsc::Receiver<HidEvent>> {
+    let mut handle = RinputerHandle::open()?;
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        loop {
+            use ez_input::EzEvent;
+            let Some(event) = handle.get_event_blocking() else {continue};
+            let ev = match event {
+                EzEvent::DirectionUp => HidEvent::Up,
+                EzEvent::DirectionDown => HidEvent::Down,
+                EzEvent::DirectionLeft => HidEvent::Left,
+                EzEvent::DirectionRight => HidEvent::Right,
+                EzEvent::South(true) => HidEvent::ButtonPress,
+                EzEvent::R(true) => HidEvent::NextTab,
+                EzEvent::L(true) => HidEvent::PreviousTab,
+                _ => continue,
+            };
+            if tx.send(ev).is_err() {
+                break;
+            };
+        }
+    });
+
+    Some(rx)
 }
 
 fn autopick_renderer() -> Box<dyn Renderer> {
