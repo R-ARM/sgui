@@ -7,10 +7,11 @@ use layout::Item;
 use anyhow::Result;
 use ez_input::RinputerHandle;
 use std::{
-    sync::mpsc,
     thread,
     time::Duration,
 };
+
+use crossbeam_channel::{bounded, select, Receiver, Sender, never};
 
 #[derive(Debug)]
 pub struct Color{r: u8, g: u8, b: u8}
@@ -85,7 +86,7 @@ pub enum RendererEvent {
 pub trait Renderer {
     fn draw_tab_header(&mut self, names: &[&str], colors: &ColorPalette) -> Result<()>;
     fn draw_items(&mut self, items: &Vec<Vec<layout::Item>>, colors: &ColorPalette, selected_item_idx: (usize, usize)) -> Result<()>;
-    fn get_event(&self) -> Option<mpsc::Receiver<RendererEvent>>;
+    fn get_event(&self) -> Option<Receiver<RendererEvent>>;
     fn tick(&mut self);
 }
 
@@ -93,8 +94,8 @@ pub struct Gui {
     renderer: Box<dyn Renderer>,
     layout: layout::Layout,
     colors: ColorPalette,
-    hid_rx: Option<mpsc::Receiver<HidEvent>>,
-    renderer_rx: Option<mpsc::Receiver<RendererEvent>>,
+    hid_rx: Option<Receiver<HidEvent>>,
+    renderer_rx: Option<Receiver<RendererEvent>>,
     tab_pos: i32,
     item_pos: (usize, usize),
     ignore_hid: bool,
@@ -131,31 +132,29 @@ impl Gui {
             let mut item_row_chg: i32 = 0;
             let mut activate_selection = false;
             let mut hid_ev = None;
+            let mut r_ev = None;
 
-            if let Some(rx) = &self.hid_rx {
-                hid_ev = rx.recv_timeout(Duration::from_millis(10)).ok();
+            select! {
+                recv(self.hid_rx.as_ref().unwrap_or(&never())) -> msg => hid_ev = Some(msg),
+                recv(self.renderer_rx.as_ref().unwrap_or(&never())) -> msg => r_ev = Some(msg),
             }
 
-            if hid_ev.is_none() {
-                if let Some(rx) = &self.renderer_rx {
-                    if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(10)){
-                        match r_ev {
-                            RendererEvent::Refresh => {
-                                redraw_items = true;
-                                redraw_tabs = true;
-                            },
-                            RendererEvent::WindowClosed => {
-                                ret = Some(GuiEvent::Quit);
-                            },
-                            RendererEvent::Hid(ev) => {
-                                hid_ev = Some(ev);
-                            }
-                        }
+            if let Some(Ok(ev)) = r_ev {
+                match ev {
+                    RendererEvent::Refresh => {
+                        redraw_items = true;
+                        redraw_tabs = true;
+                    },
+                    RendererEvent::WindowClosed => {
+                        ret = Some(GuiEvent::Quit);
+                    },
+                    RendererEvent::Hid(ev) => {
+                        hid_ev = Some(Ok(ev));
                     }
                 }
             }
 
-            if let Some(hid_ev) = hid_ev {
+            if let Some(Ok(hid_ev)) = hid_ev {
                 if self.ignore_hid {
                     return GuiEvent::IgnoredHid;
                 }
@@ -283,9 +282,9 @@ impl Gui {
     }
 }
 
-fn autopick_input() -> Option<mpsc::Receiver<HidEvent>> {
+fn autopick_input() -> Option<Receiver<HidEvent>> {
     let mut handle = RinputerHandle::open()?;
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = bounded(1);
     thread::spawn(move || {
         loop {
             use ez_input::EzEvent;

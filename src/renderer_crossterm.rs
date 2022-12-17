@@ -3,7 +3,6 @@ use anyhow::Result;
 use std::{
     io::{self, Write},
     collections::HashSet,
-    sync::mpsc,
     thread,
 };
 use crossterm::{
@@ -19,6 +18,7 @@ use crossterm::{
     terminal,
     style,
 };
+use crossbeam_channel::{Sender, Receiver, bounded};
 
 pub fn new() -> Result<CrosstermRenderer> {
     let mut out = io::stdout();
@@ -43,7 +43,7 @@ pub struct CrosstermRenderer {
     out: io::Stdout,
 }
 
-fn handle_events(tx: mpsc::Sender<RendererEvent>) {
+fn handle_events(tx: Sender<RendererEvent>) {
     loop {
         match event::read() {
             Ok(ev) => {
@@ -77,8 +77,8 @@ fn handle_events(tx: mpsc::Sender<RendererEvent>) {
 }
 
 impl Renderer for CrosstermRenderer {
-    fn get_event(&self) -> Option<mpsc::Receiver<RendererEvent>> {
-        let (tx, rx) = mpsc::channel();
+    fn get_event(&self) -> Option<Receiver<RendererEvent>> {
+        let (tx, rx) = bounded(1);
         thread::spawn(move || handle_events(tx));
         Some(rx)
     }
