@@ -60,6 +60,7 @@ pub enum GuiEvent {
     StatelessButtonPress(String, u128),
     TabChanged(String),
     Quit,
+    IgnoredHid,
 }
 
 #[derive(Eq, PartialEq, Debug)]
@@ -138,18 +139,16 @@ impl Gui {
             if hid_ev.is_none() {
                 if let Some(rx) = &self.renderer_rx {
                     if let Ok(r_ev) = rx.recv_timeout(Duration::from_millis(10)){
-                        if !self.ignore_hid {
-                            match r_ev {
-                                RendererEvent::Refresh => {
-                                    redraw_items = true;
-                                    redraw_tabs = true;
-                                },
-                                RendererEvent::WindowClosed => {
-                                    ret = Some(GuiEvent::Quit);
-                                },
-                                RendererEvent::Hid(ev) => {
-                                    hid_ev = Some(ev);
-                                }
+                        match r_ev {
+                            RendererEvent::Refresh => {
+                                redraw_items = true;
+                                redraw_tabs = true;
+                            },
+                            RendererEvent::WindowClosed => {
+                                ret = Some(GuiEvent::Quit);
+                            },
+                            RendererEvent::Hid(ev) => {
+                                hid_ev = Some(ev);
                             }
                         }
                     }
@@ -157,17 +156,18 @@ impl Gui {
             }
 
             if let Some(hid_ev) = hid_ev {
-                if !self.ignore_hid {
-                    match hid_ev {
-                        HidEvent::NextTab => tab_chg = 1,
-                        HidEvent::PreviousTab => tab_chg = -1,
-                        HidEvent::Up => item_row_chg = -1,
-                        HidEvent::Down => item_row_chg = 1,
-                        HidEvent::Left => item_column_chg = -1,
-                        HidEvent::Right => item_column_chg = 1,
-                        HidEvent::ButtonPress => activate_selection = true,
-                        HidEvent::Quit => ret = Some(GuiEvent::Quit),
-                    }
+                if self.ignore_hid {
+                    return GuiEvent::IgnoredHid;
+                }
+                match hid_ev {
+                    HidEvent::NextTab => tab_chg = 1,
+                    HidEvent::PreviousTab => tab_chg = -1,
+                    HidEvent::Up => item_row_chg = -1,
+                    HidEvent::Down => item_row_chg = 1,
+                    HidEvent::Left => item_column_chg = -1,
+                    HidEvent::Right => item_column_chg = 1,
+                    HidEvent::ButtonPress => activate_selection = true,
+                    HidEvent::Quit => ret = Some(GuiEvent::Quit),
                 }
             }
 
