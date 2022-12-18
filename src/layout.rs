@@ -64,6 +64,9 @@ impl LayoutBuilder {
             name: name.to_string(),
         }
     }
+    pub fn build(self) -> Layout {
+        Layout { tabs: self.tabs }
+    }
 }
 
 pub struct TabBuilder {
@@ -92,6 +95,12 @@ impl TabBuilder {
         layout_builder.tabs.push(Tab{ item_grid: self.lines, name: self.name });
 
         layout_builder.tab(name)
+    }
+    pub fn end_tab(mut self) -> LayoutBuilder {
+        let mut layout_builder = self.layout_builder.take().unwrap();
+        layout_builder.tabs.push(Tab{ item_grid: self.lines, name: self.name });
+
+        layout_builder
     }
 }
 
@@ -131,9 +140,14 @@ impl LineBuilder {
     pub fn endl(mut self) -> TabBuilder {
         let mut tab_builder = self.tab_builder.take().unwrap();
         tab_builder.lines.push(self.items);
+
         tab_builder
     }
-
+    pub fn end_tab(mut self) -> LayoutBuilder {
+        let mut tab_builder = self.tab_builder.take().unwrap();
+        tab_builder.lines.push(self.items);
+        tab_builder.end_tab()
+    }
     pub fn build(mut self) -> Layout {
         let mut tab_builder = self.tab_builder.take().unwrap();
         tab_builder.lines.push(self.items);
